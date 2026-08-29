@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" />
+    <title>Memory Hoops</title>
+    <meta name="description" content="Memory Hoops — the 3D basketball pattern memory game. Watch the grid light up, then repeat it before time runs out. Spell HORSE and you lose!" />
+    <meta name="robots" content="index, follow" />
+    <meta property="og:title" content="Memory Hoops" />
+    <meta property="og:description" content="Memory Hoops — the 3D basketball pattern memory game. Watch the grid light up, then repeat it before time runs out. Spell HORSE and you lose!" />
+    <meta property="og:type" content="website" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Memory Hoops" />
+    <meta name="twitter:description" content="Memory Hoops — the 3D basketball pattern memory game. Watch the grid light up, then repeat it before time runs out. Spell HORSE and you lose!" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+      /* Remove 300ms tap delay and blue flash on all interactive elements */
+      *, *::before, *::after {
+        -webkit-tap-highlight-color: transparent;
+        touch-action: pan-x pan-y;
+      }
+      button, [role="button"] {
+        touch-action: manipulation;
+      }
+      html, body, #root {
+        margin: 0;
+        padding: 0;
+        overflow: hidden;
+        width: 100%;
+        height: 100%;
+        /* Prevent iOS rubber-band scroll */
+        overscroll-behavior: none;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

@@ -1,0 +1,172 @@
+**Yes!** I can help you create great sound effects for your HORSE game.
+
+Here’s a complete **procedural + flexible** sound system using the Web Audio API (no external files needed at first).
+
+### 1. Create `SoundManager.ts`
+
+```ts
+// SoundManager.ts
+export class SoundManager {
+  private audioContext: AudioContext;
+  private sounds: Map<string, () => void> = new Map();
+
+  constructor() {
+    this.audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+  }
+
+  private playTone(freq: number, duration: number, type: OscillatorType = 'sine', volume = 0.3) {
+    const oscillator = this.audioContext.createOscillator();
+    const gain = this.audioContext.createGain();
+
+    oscillator.type = type;
+    oscillator.frequency.value = freq;
+    gain.gain.value = volume;
+
+    oscillator.connect(gain);
+    gain.connect(this.audioContext.destination);
+
+    oscillator.start();
+    setTimeout(() => {
+      gain.gain.linearRampToValueAtTime(0, this.audioContext.currentTime + 0.02);
+      oscillator.stop(this.audioContext.currentTime + 0.05);
+    }, duration);
+  }
+
+  // Basketball Sounds
+  swish() {
+    // Clean net swish
+    const noise = this.audioContext.createBufferSource();
+    const buffer = this.audioContext.createBuffer(1, this.audioContext.sampleRate * 0.8, this.audioContext.sampleRate);
+    const data = buffer.getChannelData(0);
+
+    for (let i = 0; i < buffer.length; i++) {
+      data[i] = Math.random() * 2 - 1;
+    }
+    noise.buffer = buffer;
+
+    const filter = this.audioContext.createBiquadFilter();
+    filter.type = 'lowpass';
+    filter.frequency.value = 1200;
+
+    const gain = this.audioContext.createGain();
+    gain.gain.value = 0.6;
+    gain.gain.linearRampToValueAtTime(0, this.audioContext.currentTime + 0.8);
+
+    noise.connect(filter).connect(gain).connect(this.audioContext.destination);
+    noise.start();
+  }
+
+  rimClank() {
+    this.playTone(180, 120, 'sawtooth', 0.7);
+    setTimeout(() => this.playTone(90, 300, 'square', 0.4), 40);
+  }
+
+  ballBounce() {
+    this.playTone(220, 80, 'triangle', 0.5);
+    setTimeout(() => this.playTone(140, 60, 'triangle', 0.3), 50);
+  }
+
+  miss() {
+    this.playTone(320, 180, 'sawtooth', 0.4);
+    setTimeout(() => this.playTone(180, 400, 'sine', 0.35), 80);
+  }
+
+  cheer() {
+    this.playTone(680, 100, 'sine', 0.6);
+    setTimeout(() => this.playTone(820, 100, 'sine', 0.6), 80);
+    setTimeout(() => this.playTone(980, 220, 'sine', 0.5), 180);
+  }
+
+  // UI Sounds
+  letterAdded() {
+    this.playTone(520, 60, 'sine', 0.4);
+    setTimeout(() => this.playTone(680, 80, 'sine', 0.4), 60);
+  }
+
+  click() {
+    this.playTone(800, 30, 'sine', 0.3);
+  }
+}
+
+// Singleton
+export const soundManager = new SoundManager();
+```
+
+### 2. Create a React Hook (`useSound.ts`)
+
+```tsx
+// useSound.ts
+import { useEffect } from 'react';
+import { soundManager } from './SoundManager';
+
+export const useSound = () => {
+  const playSwish = () => soundManager.swish();
+  const playRimClank = () => soundManager.rimClank();
+  const playBounce = () => soundManager.ballBounce();
+  const playMiss = () => soundManager.miss();
+  const playCheer = () => soundManager.cheer();
+  const playLetterAdded = () => soundManager.letterAdded();
+  const playClick = () => soundManager.click();
+
+  // Resume audio context on user interaction (important for browsers)
+  useEffect(() => {
+    const resumeAudio = () => {
+      if (soundManager['audioContext'].state === 'suspended') {
+        soundManager['audioContext'].resume();
+      }
+    };
+
+    document.addEventListener('click', resumeAudio, { once: true });
+    return () => document.removeEventListener('click', resumeAudio);
+  }, []);
+
+  return {
+    playSwish,
+    playRimClank,
+    playBounce,
+    playMiss,
+    playCheer,
+    playLetterAdded,
+    playClick,
+  };
+};
+```
+
+### 3. How to Use in Your Game
+
+```tsx
+import { useSound } from './useSound';
+
+function GameLogic() {
+  const { playSwish, playRimClank, playMiss, playCheer, playLetterAdded } = useSound();
+
+  const handleShotResult = (isMake: boolean) => {
+    if (isMake) {
+      playSwish();
+      playCheer();
+    } else {
+      playRimClank();
+      playMiss();
+      playLetterAdded(); // when they get H, O, R, etc.
+    }
+  };
+
+  // Ball bounce on ground
+  // onCollision or useFrame check → playBounce()
+}
+```
+
+### Want Even Better Sounds?
+
+I can also help you with:
+
+1. **Upload custom sound files** (similar to the texture uploader)
+2. More advanced procedural sounds (better bounce, crowd, etc.)
+3. Integration with **Howler.js** or **Tone.js** for higher quality
+
+Would you like me to:
+- Improve any specific sound (e.g. make the swish sound more realistic)?
+- Add a **sound settings panel** (volume sliders, mute)?
+- Create a full `SoundEffects.tsx` component with on-screen buttons for testing?
+
+Just tell me what you need next! 🎵

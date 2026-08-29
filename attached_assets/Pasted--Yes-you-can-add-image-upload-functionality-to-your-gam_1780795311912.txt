@@ -1,0 +1,166 @@
+**Yes, you can add image upload functionality** to your game! Even though the game was built procedurally, adding custom textures is totally feasible in React Three Fiber.
+
+Here’s a complete, clean solution:
+
+### 1. Create `TextureUploader.tsx`
+
+```tsx
+import React, { useState, useCallback } from 'react';
+import * as THREE from 'three';
+
+interface TextureUploaderProps {
+  onTextureLoaded: (texture: THREE.Texture | null, label: string) => void;
+  label: string;
+  accept?: string;
+}
+
+export default function TextureUploader({ 
+  onTextureLoaded, 
+  label,
+  accept = "image/*" 
+}: TextureUploaderProps) {
+  const [preview, setPreview] = useState<string | null>(null);
+
+  const handleUpload = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const url = URL.createObjectURL(file);
+    setPreview(url);
+
+    const loader = new THREE.TextureLoader();
+    loader.load(
+      url,
+      (texture) => {
+        texture.flipY = false;           // Important for Three.js
+        texture.wrapS = THREE.RepeatWrapping;
+        texture.wrapT = THREE.RepeatWrapping;
+        texture.anisotropy = 16;         // Sharpness
+        onTextureLoaded(texture, label);
+      },
+      undefined,
+      (err) => {
+        console.error("Texture load failed", err);
+        onTextureLoaded(null, label);
+      }
+    );
+  }, [onTextureLoaded, label]);
+
+  return (
+    <div style={{ position: 'absolute', top: 10, left: 10, zIndex: 100, background: 'rgba(0,0,0,0.7)', padding: '10px', borderRadius: '8px', color: 'white' }}>
+      <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px' }}>
+        {label}
+      </label>
+      <input 
+        type="file" 
+        accept={accept} 
+        onChange={handleUpload}
+        style={{ fontSize: '14px' }}
+      />
+      {preview && (
+        <img 
+          src={preview} 
+          alt="preview" 
+          style={{ marginTop: 8, maxWidth: '120px', borderRadius: '4px', border: '1px solid #fff' }} 
+        />
+      )}
+    </div>
+  );
+}
+```
+
+### 2. Update Your Main Scene (`App.tsx` or `Game.tsx`)
+
+```tsx
+import { useState } from 'react';
+import * as THREE from 'three';
+import Court from './Court';
+import Basketball from './Basketball';
+import TextureUploader from './TextureUploader';
+
+export default function Game() {
+  const [floorTexture, setFloorTexture] = useState<THREE.Texture | null>(null);
+  const [wallTexture, setWallTexture] = useState<THREE.Texture | null>(null);
+  const [backboardTexture, setBackboardTexture] = useState<THREE.Texture | null>(null);
+
+  return (
+    <>
+      <TextureUploader 
+        label="Upload Floor Texture" 
+        onTextureLoaded={(tex) => setFloorTexture(tex)} 
+      />
+      <TextureUploader 
+        label="Upload Wall Texture" 
+        onTextureLoaded={(tex) => setWallTexture(tex)} 
+      />
+      <TextureUploader 
+        label="Upload Backboard Image" 
+        onTextureLoaded={(tex) => setBackboardTexture(tex)} 
+      />
+
+      <Canvas ...>
+        <Court 
+          gym="outdoor" 
+          netRippling={...}
+          floorTexture={floorTexture}
+          wallTexture={wallTexture}
+          backboardTexture={backboardTexture}
+        />
+        <Basketball ... />
+      </Canvas>
+    </>
+  );
+}
+```
+
+### 3. Modify `Court.tsx` to Accept Textures
+
+Add these props to the `Court` interface:
+
+```tsx
+interface CourtProps {
+  gym: GymType;
+  netRippling?: boolean;
+  floorTexture?: THREE.Texture | null;
+  wallTexture?: THREE.Texture | null;
+  backboardTexture?: THREE.Texture | null;
+}
+```
+
+Then update the materials, for example:
+
+```tsx
+// In the floor MeshReflectorMaterial
+<MeshReflectorMaterial
+  map={floorTexture || undefined}           // adds custom texture
+  roughnessMap={floorTexture || undefined}
+  // ... other props
+/>
+
+// For walls (in classic/outdoor/arcade sections)
+<meshStandardMaterial 
+  map={wallTexture || undefined}
+  color={wallTexture ? '#ffffff' : originalColor}
+/>
+
+// Backboard
+<meshPhysicalMaterial
+  map={backboardTexture || undefined}
+  // ... existing transmission settings
+/>
+```
+
+### Tips for Best Results
+
+- **Floor textures** work great with wood, asphalt, or court patterns.
+- **Backboard** — upload a logo, custom design, or player photo (it will show through the glass material).
+- Use **1024x1024** or **2048x2048** images for good quality.
+- Add a **"Reset to Procedural"** button that sets textures back to `null`.
+- On mobile, warn users about large image files (performance).
+
+Would you like me to:
+1. Give you the **full updated `Court.tsx`** with texture support?
+2. Add **custom ball skin upload**?
+3. Add a **simple UI panel** for uploading multiple textures?
+
+Just say the word and I’ll generate the exact code you need.
