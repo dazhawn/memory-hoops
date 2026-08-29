@@ -1,4 +1,5 @@
 import { useRef, useCallback, useState, useEffect } from 'react';
+import { wsUrl } from '../lib/api';
 import {
   GamePhase,
   GameSettings,
@@ -220,8 +221,7 @@ export function useRemoteGame() {
       if (onOpen) wsRef.current.addEventListener('open', onOpen, { once: true });
       return;
     }
-    const proto = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const ws = new WebSocket(`${proto}//${window.location.host}/ws`);
+    const ws = new WebSocket(wsUrl());
     wsRef.current = ws;
     ws.onopen = () => { setIsConnected(true); onOpen?.(); };
     ws.onclose = () => { setIsConnected(false); wsRef.current = null; };
@@ -331,7 +331,7 @@ export function useRemoteGame() {
     activeCell, score: 0, playerLetters: 0, p1Letters, p2Letters,
     setter: setterNum, setterInput, passDeviceFor: null as null,
     timeLeft, timerStarted, ballAnimState, round, message,
-    highScore: 0, isNewBest: false as const,
+    highScore: 0, isNewBest: false as const, arcadeLives: 0,
     startGame: (_s: GameSettings) => {},
     restartGame, handleCellClick, handleSetterCellClick,
     clearSetterInput, confirmSetterPattern,

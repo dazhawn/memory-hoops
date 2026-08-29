@@ -10,8 +10,8 @@ A 3D basketball pattern-memory game: the grid flashes a sequence, the player rep
 - `pnpm run build` — typecheck + build all packages
 - `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from the OpenAPI spec
 - `pnpm --filter @workspace/db run push` — push DB schema changes (dev only)
-- Required env: `DATABASE_URL` — Postgres connection string; `PORT`; `BASE_PATH` (use `/` locally); optional `API_SERVER_PORT` (defaults to 8080)
-- Mobile build: `cd artifacts/3d-game && pnpm vite build --config vite.config.capacitor.ts && npx cap sync`
+- Required env: `DATABASE_URL` — Postgres connection string; `PORT`; `BASE_PATH` (use `/` locally); optional `API_SERVER_PORT` (defaults to 8080); `VITE_API_ORIGIN` unset on web, required for mobile builds
+- Mobile build: `cd artifacts/3d-game && VITE_API_ORIGIN=https://your-api-host pnpm run build:mobile && npx cap sync`
 
 ## Stack
 
@@ -36,6 +36,7 @@ A 3D basketball pattern-memory game: the grid flashes a sequence, the player rep
 - **API contracts:** `lib/api-spec/openapi.yaml` — note it currently documents only `/healthz`; the leaderboard routes are not in the spec
 - **API routes:** `artifacts/api-server/src/routes/`; WebSocket room logic in `src/lib/rooms.ts` and `src/lib/websocket.ts`
 - **Mobile config:** `artifacts/3d-game/capacitor.config.ts`, plus `android/` and `ios/` projects
+- **API origin:** `artifacts/3d-game/src/lib/api.ts` (`apiUrl`, `wsUrl`), documented in `artifacts/3d-game/.env.example`
 - **Theme values:** `GYM_BG` and the per-gym lighting/bloom settings are inline in `types.ts` and `App.tsx`
 
 ## Architecture decisions
@@ -53,7 +54,8 @@ Four modes: **1P** (solo, 100 pts/round, 1000 to win), **2P** pass-and-play on o
 
 ## Gotchas
 
-- **Relative API URLs break in the mobile builds.** `submitArcadeScore` fetches `/api/leaderboard` and `useRemoteGame` connects to `wss://${window.location.host}/ws`. In a Capacitor WebView the host is `localhost`, so leaderboard submission and remote play fail in packaged apps. Needs a build-time API origin before shipping.
+- **All API calls must go through `src/lib/api.ts`.** `apiUrl()` and `wsUrl()` resolve against `VITE_API_ORIGIN`, which is empty on web (relative paths, same origin) and mandatory for Capacitor builds — a packaged app is served from `localhost`, so a raw `/api/...` fetch or a `location.host` socket can never reach the server. `vite.config.capacitor.ts` fails the build if the variable is missing or malformed. Don't reintroduce a bare `fetch('/api/...')`.
+- **The two game hooks must return the same shape.** The shared HUD reads fields off whichever hook is active, so a field added to `useGameState` needs a counterpart in `useRemoteGame` (that is why it returns `arcadeLives: 0` and other inert placeholders) or the union type stops compiling.
 - `lib/db` throws at import time if `DATABASE_URL` is unset, and `vite.config.ts` throws if `PORT` or `BASE_PATH` are unset. Nothing runs without those.
 - `android/app/src/main/assets/public/` and `ios/App/App/public/` hold a **synced copy** of the built web app. It goes stale — always re-run `npx cap sync` after a web build, don't hand-edit those.
 - The generated `@workspace/api-client-react` hooks aren't used by the game yet; it calls `fetch` directly. Don't assume the OpenAPI spec reflects the real API surface.

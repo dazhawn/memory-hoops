@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { apiUrl } from '../lib/api';
 
 interface LeaderboardEntry {
   id: number;
@@ -29,7 +30,7 @@ export function LeaderboardScreen({ onClose, highlightId }: Props) {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    fetch('/api/leaderboard')
+    fetch(apiUrl('/api/leaderboard'))
       .then((r) => r.json())
       .then((data: LeaderboardEntry[]) => { setEntries(data); setLoading(false); })
       .catch(() => { setError('Could not load leaderboard.'); setLoading(false); });

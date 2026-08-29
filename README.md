@@ -44,6 +44,7 @@ The timer doesn't start until the first tap, so you're never punished for reacti
 artifacts/
   3d-game/           The game itself (Vite app)
     src/game/        All gameplay code — see below
+    src/lib/api.ts   API origin resolution (apiUrl / wsUrl)
     android/         Capacitor Android project
     ios/             Capacitor iOS project (SPM-based)
     scripts/         Icon + splash generation (sharp)
@@ -67,7 +68,7 @@ attached_assets/     Reference screenshots and notes from development
 - `PatternGrid.tsx` — the tap grid, including 2P setter mode
 - `GameHUD.tsx`, `MenuScreen.tsx`, `GameOverScreen.tsx`, `LeaderboardScreen.tsx`, `RemoteLobbyScreen.tsx`
 
-`App.tsx` calls both `useGameState` and `useRemoteGame` unconditionally and swaps between them, so hook order stays stable — don't make either call conditional.
+`App.tsx` calls both `useGameState` and `useRemoteGame` unconditionally and swaps between them, so hook order stays stable — don't make either call conditional. The two hooks must also keep returning the *same shape*; the shared HUD reads fields from whichever is active.
 
 ---
 
@@ -87,6 +88,7 @@ Environment variables:
 | `PORT` | api-server, vite dev | Required, no default. |
 | `BASE_PATH` | `vite.config.ts` | Required, no default. Use `/` locally. |
 | `API_SERVER_PORT` | vite dev proxy | Defaults to `8080`. |
+| `VITE_API_ORIGIN` | `src/lib/api.ts` | **Leave unset for web.** Required for mobile builds — see below. |
 
 ```bash
 # API server
@@ -112,12 +114,16 @@ pnpm --filter @workspace/api-spec run codegen
 
 Mobile uses a **separate Vite config** (`vite.config.capacitor.ts`) that drops the Replit plugins and the `PORT` / `BASE_PATH` requirements, and builds with `base: './'` so the WebView can load assets from the filesystem.
 
+**`VITE_API_ORIGIN` is mandatory here.** On the web the game is served from the same origin as the API, so relative `/api` and `/ws` paths work. A packaged app is served from `capacitor://localhost` (iOS) or `https://localhost` (Android), so those same relative paths point at the app bundle and never reach the server — the Arcade leaderboard and Online multiplayer would fail silently. `vite.config.capacitor.ts` refuses to build without it, and rejects a value that isn't `http://` or `https://`. Android sets `allowMixedContent: false`, so real device builds need `https`. The WebSocket URL is derived automatically (`https` → `wss`).
+
 ```bash
 cd artifacts/3d-game
-pnpm vite build --config vite.config.capacitor.ts   # → dist/
+VITE_API_ORIGIN=https://your-api-host pnpm run build:mobile
 npx cap sync
 npx cap open android    # or: npx cap open ios
 ```
+
+Or put the value in `artifacts/3d-game/.env.production.local` — see `.env.example`.
 
 Icons and splash screens are generated from `assets-source/icon.png` and `assets-source/splash.png` via `scripts/generate-assets.mjs` and `scripts/place-assets.mjs`.
 
@@ -127,13 +133,21 @@ Icons and splash screens are generated from `assets-source/icon.png` and `assets
 
 Known gaps, roughly in priority order:
 
-1. **The API base URL is relative.** `submitArcadeScore` posts to `/api/leaderboard` and `useRemoteGame` opens `wss://${window.location.host}/ws`. Inside a Capacitor WebView the host is `localhost`, so **Arcade leaderboard submission and Remote multiplayer will both fail in the packaged apps.** These need to point at a deployed API origin — e.g. a `VITE_API_ORIGIN` env var read at build time, defaulting to relative for web.
-2. **No release signing.** `android/app/build.gradle` has no `signingConfig` on the release build type and `minifyEnabled` is `false`. Play requires a signed AAB; generate an upload keystore and wire it in.
-3. **iOS version fields** are still Xcode variables (`MARKETING_VERSION` / `CURRENT_PROJECT_VERSION`) and the bundle ID needs registering in the Apple Developer portal.
-4. **The privacy policy needs a public URL.** `public/privacy-policy.html` exists (last updated June 2026) but both stores require a hosted, reachable link in the listing.
-5. **The API server needs a deployment** with a provisioned Postgres before the leaderboard or remote play work at all. Replit autoscale is configured in `.replit`.
-6. **No tests.** There is no test runner in the workspace.
-7. **Store assets** — screenshots, feature graphic, and listing copy don't exist yet. The 1024px icon and splash source art do.
+1. **No release signing.** `android/app/build.gradle` has no `signingConfig` on the release build type and `minifyEnabled` is `false`. Play requires a signed AAB; generate an upload keystore and wire it in.
+2. **iOS version fields** are still Xcode variables (`MARKETING_VERSION` / `CURRENT_PROJECT_VERSION`) and the bundle ID needs registering in the Apple Developer portal.
+3. **The privacy policy needs a public URL.** `public/privacy-policy.html` exists (last updated June 2026) but both stores require a hosted, reachable link in the listing.
+4. **The API server needs a deployment** with a provisioned Postgres before the leaderboard or remote play work at all — and its origin is what goes in `VITE_API_ORIGIN`. Replit autoscale is configured in `.replit`.
+5. **No tests.** There is no test runner in the workspace.
+6. **Store assets** — screenshots, feature graphic, and listing copy don't exist yet. The 1024px icon and splash source art do.
+
+---
+
+## Developing on Windows
+
+The workspace was built on Replit (Linux) and two things bite on Windows:
+
+- The root `preinstall` script uses `sh`. Put Git's bin directory on `PATH` (`C:\Program Files\Git\bin`) before running `pnpm install`, or the script fails at the end of an otherwise successful install.
+- pnpm blocks build scripts for `canvas`, `esbuild` and `sharp` by default and then makes `pnpm run <script>` fail its pre-run dependency check. Run `pnpm approve-builds` to decide which to allow. Nothing but the icon-generation scripts needs `sharp` or `canvas`, so the Vite builds work without approving them — invoke the local binaries directly (`node_modules\.bin\vite`) if you want to skip the check.
 
 ---
 

@@ -14,6 +14,7 @@ import { GameOverScreen } from './game/GameOverScreen';
 import { RemoteLobbyScreen } from './game/RemoteLobbyScreen';
 import { GYM_BG, GymTheme, GameSettings, getPatternLength } from './game/types';
 import { LeaderboardScreen } from './game/LeaderboardScreen';
+import { apiUrl } from './lib/api';
 
 function isWebGLAvailable(): boolean {
   try {
@@ -91,7 +92,7 @@ function App() {
 
   const submitArcadeScore = useCallback(async (name: string) => {
     try {
-      const res = await fetch('/api/leaderboard', {
+      const res = await fetch(apiUrl('/api/leaderboard'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name, score: localGame.score, round: localGame.round }),
