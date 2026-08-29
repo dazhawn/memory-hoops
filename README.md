@@ -133,7 +133,7 @@ Icons and splash screens are generated from `assets-source/icon.png` and `assets
 
 Known gaps, roughly in priority order:
 
-1. **No release signing.** `android/app/build.gradle` has no `signingConfig` on the release build type and `minifyEnabled` is `false`. Play requires a signed AAB; generate an upload keystore and wire it in.
+1. **You need to generate an upload keystore.** The build is wired for it — `app/build.gradle` reads credentials from a gitignored `android/keystore.properties` or from `MH_KEYSTORE_*` environment variables, and falls back to an unsigned build with a loud warning. Follow `android/RELEASE_SIGNING.md`; the key itself is yours to create and back up. (`minifyEnabled` is still `false` — R8 can break a WebView app, so test on a device before enabling it.)
 2. **iOS version fields** are still Xcode variables (`MARKETING_VERSION` / `CURRENT_PROJECT_VERSION`) and the bundle ID needs registering in the Apple Developer portal.
 3. **The privacy policy needs a public URL.** `public/privacy-policy.html` exists (last updated June 2026) but both stores require a hosted, reachable link in the listing.
 4. **The API server needs a deployment** with a provisioned Postgres before the leaderboard or remote play work at all — and its origin is what goes in `VITE_API_ORIGIN`. Replit autoscale is configured in `.replit`.

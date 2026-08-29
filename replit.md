@@ -12,6 +12,7 @@ A 3D basketball pattern-memory game: the grid flashes a sequence, the player rep
 - `pnpm --filter @workspace/db run push` — push DB schema changes (dev only)
 - Required env: `DATABASE_URL` — Postgres connection string; `PORT`; `BASE_PATH` (use `/` locally); optional `API_SERVER_PORT` (defaults to 8080); `VITE_API_ORIGIN` unset on web, required for mobile builds
 - Mobile build: `cd artifacts/3d-game && VITE_API_ORIGIN=https://your-api-host pnpm run build:mobile && npx cap sync`
+- Signed Android bundle: `cd artifacts/3d-game/android && gradlew bundleRelease` — needs `android/keystore.properties` (gitignored) or `MH_KEYSTORE_*` env vars; see `android/RELEASE_SIGNING.md`
 
 ## Stack
 
@@ -61,6 +62,7 @@ Four modes: **1P** (solo, 100 pts/round, 1000 to win), **2P** pass-and-play on o
 - The generated `@workspace/api-client-react` hooks aren't used by the game yet; it calls `fetch` directly. Don't assume the OpenAPI spec reflects the real API surface.
 - `pnpm-workspace.yaml` sets a minimum package release age as supply-chain defense. Do not disable it.
 - Root `package.json` has a `preinstall` guard that rejects npm and yarn — use pnpm.
+- Signing credentials never live in the repo. `*.jks`, `*.keystore`, `*.p12` and `keystore.properties` are gitignored; only `keystore.properties.example` is tracked. A release build with no credentials succeeds but produces an **unsigned** bundle and says so in the log — check for that warning before uploading to Play.
 
 ## Pointers
 
